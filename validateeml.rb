@@ -5,9 +5,12 @@ require 'rest_client'
 class CheckEML
 
   def initialize(url='http://lter.kbs.msu.edu/datasets?Dataset=all')
-    @harvest_list = url
-    @errors = []
-    @reports = []
+    begin
+      @harvest_list = url
+    ensure
+      @errors = []
+      @reports = []
+    end
   end
   
   def check_harvest_list
@@ -28,10 +31,13 @@ class CheckEML
     eml_scope, doc_id, version = doc.root.attributes['packageId'].value.split(/\./)
     data_entities =  doc.xpath('//dataTable/entityName').collect {|x| x.text }
 
-    check_with_eml_validator(url)
-    created_dataset_in_nis(url)
-    have_any_data_entities_been_created?(eml_scope, doc_id, version)
-#    read_nis_data_reports(data_entities, eml_scope, doc_id, version)
+    if check_with_eml_validator(url)
+      if created_dataset_in_nis(url)
+        if have_any_data_entities_been_created?(eml_scope, doc_id, version)
+          read_nis_data_reports(data_entities, eml_scope, doc_id, version)
+        end
+      end
+    end    
   end
 
 
@@ -45,7 +51,7 @@ class CheckEML
 
   def have_any_data_entities_been_created?(eml_scope, doc_id, version)
     url = "http://data.lternet.edu/data/eml/NIS-#{eml_scope}/#{doc_id}/#{version}"
-    check_with(url) { RestClient.get url}
+    check_with { RestClient.get url}
   end
 
   def read_nis_data_reports(data_entities, eml_scope, doc_id, version)
@@ -96,14 +102,17 @@ class CheckEML
 
   private
 
-  def check_with(*url)
+  def check_with
+    result = false
     begin
       response = yield 
-      pass_fail(response) 
+      result = true
+       pass_fail(url, response) 
     rescue RestClient::Exception => e
       @errors.push EMLCheckError.new(url, e.response.body)
       print 'F'
     end
+    result
   end
 
   def fail_with_message(url, message) 
@@ -111,7 +120,7 @@ class CheckEML
     @errors.push(url, message)
   end
 
-  def pass_fail(response)
+  def pass_fail(url, response)
     if response.code == 200
       print '.'
     else
