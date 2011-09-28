@@ -5,24 +5,22 @@ require 'rest_client'
 class CheckEML
 
   def initialize(url='http://lter.kbs.msu.edu/datasets?Dataset=all')
-    begin
-      @harvest_list = url
-    ensure
-      @errors = []
-      @reports = []
-    end
+    @harvest_list = url
+    @errors = []
+    @reports = []
   end
   
   def check_harvest_list
     harvestList = Nokogiri::XML(open(@harvest_list))
     urls = harvestList.css('documentURL').collect {|x| x.text }
 
-    urls.each do |url|
-      check_dataset(url)
-    end
+    begin
+      urls.each {|url| check_dataset(url) }
 
-    print_errors
-    print_reporst
+    ensure
+      print_errors
+      print_reports
+    end
   end
 
   def check_dataset(url)
@@ -42,16 +40,16 @@ class CheckEML
 
 
   def created_dataset_in_nis(url)
-      # use Request.execute because we want to disable the timeout.
-      check_with { RestClient::Request.execute(:method=>:post, 
-                                               :url =>'http://data.lternet.edu/data/eml?mode=evaluate', 
-                                               :payload => url, 
-                                               :timeout => -1)}
+    #  use Request.execute because we want to disable the timeout.
+    check_with(url) { RestClient::Request.execute(:method=>:post, 
+                                             :url =>'http://data.lternet.edu/data/eml?mode=evaluate', 
+                                             :payload => url, 
+                                             :timeout => -1)}
   end
 
   def have_any_data_entities_been_created?(eml_scope, doc_id, version)
     url = "http://data.lternet.edu/data/eml/NIS-#{eml_scope}/#{doc_id}/#{version}"
-    check_with { RestClient.get url}
+    check_with(url) { RestClient.get url}
   end
 
   def read_nis_data_reports(data_entities, eml_scope, doc_id, version)
@@ -102,12 +100,12 @@ class CheckEML
 
   private
 
-  def check_with
+  def check_with(url)
     result = false
     begin
       response = yield 
       result = true
-       pass_fail(url, response) 
+      pass_fail(url, response) 
     rescue RestClient::Exception => e
       @errors.push EMLCheckError.new(url, e.response.body)
       print 'F'
