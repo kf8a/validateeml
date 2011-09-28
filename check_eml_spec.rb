@@ -1,5 +1,5 @@
 require 'rspec'
-require File.expand_path(File.dirname(__FILE__) + '/check_eml')
+require File.expand_path(File.dirname(__FILE__) + '/validateeml')
 
 describe CheckEML do
 
