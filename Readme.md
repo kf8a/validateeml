@@ -8,6 +8,7 @@ Prerequisites:
 -------------
 
 gem install nokogiri, 
+
 gem install rest_client
 
 USAGE:
@@ -15,4 +16,4 @@ USAGE:
 
 1. point line 114 at your harvest list,
 2. ruby validateeml.rb
-3 There is no step 3.
+3. There is no step 3.
