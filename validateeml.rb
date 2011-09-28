@@ -31,25 +31,25 @@ class CheckEML
     check_with_eml_validator(url)
     created_dataset_in_nis(url)
     have_any_data_entities_been_created?(eml_scope, doc_id, version)
-    read_nis_data_reports(data_entities, eml_scope, doc_id, version)
+#    read_nis_data_reports(data_entities, eml_scope, doc_id, version)
   end
 
 
   def created_dataset_in_nis(url)
       # use Request.execute because we want to disable the timeout.
-      check_with RestClient::Request.execute(:method=>:post, 
-                                             :url =>'http://data.lternet.edu/data/eml?mode=evaluate', 
-                                             :payload => url, 
-                                             :timeout => -1)
+      check_with { RestClient::Request.execute(:method=>:post, 
+                                               :url =>'http://data.lternet.edu/data/eml?mode=evaluate', 
+                                               :payload => url, 
+                                               :timeout => -1)}
   end
 
   def have_any_data_entities_been_created?(eml_scope, doc_id, version)
-      check_with RestClient.get "http://data.lternet.edu/data/eml/NIS-#{eml_scope}/#{doc_id}/#{version}"
+    url = "http://data.lternet.edu/data/eml/NIS-#{eml_scope}/#{doc_id}/#{version}"
+    check_with(url) { RestClient.get url}
   end
 
   def read_nis_data_reports(data_entities, eml_scope, doc_id, version)
       data_entities.each do | entity |
-        check_with 
         begin
           url = "http://data.lternet.edu/data/eml/NIS-#{eml_scope}/#{doc_id}/#{version}/#{entity}/report"
           response = RestClient.get url
@@ -81,6 +81,12 @@ class CheckEML
   end
 
   def print_errors
+    @errors.each do |error|
+      if error.message =~ /Internal Server Error/
+        error.message = 'Internal Server Error'
+      end
+      print "#{error.url}: #{error.message}\n"
+    end
     p @errors
   end
 
@@ -90,7 +96,7 @@ class CheckEML
 
   private
 
-  def check_with
+  def check_with(*url)
     begin
       response = yield 
       pass_fail(response) 
