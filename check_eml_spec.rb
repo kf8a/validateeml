@@ -1,4 +1,5 @@
 require 'rspec'
+require File.expand_path(File.dirname(__FILE__) + '/check_eml')
 
 describe CheckEML do
 
@@ -6,8 +7,11 @@ describe CheckEML do
     it 'should validate'
   end
 
-  describe "creating a dataset" do
-    it 'should create a valid url'
+  describe "checking with the EML validator" do
+    it 'should return true for a valid dataset' do
+      RestClient.stub(:get).and_return(200)
+
+    end
     it 'should parse the response'
   end
 
