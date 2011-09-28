@@ -14,4 +14,4 @@ gem install rest_client
 USAGE:
 ----------------------
 
-ruby validateeml.rb
+ruby validateeml.rb "url to your harvest list"
