@@ -10,10 +10,17 @@ class CheckEML
     @reports = []
   end
   
-  def check_harvest_list
-    harvestList = Nokogiri::XML(open(@harvest_list))
-    urls = harvestList.css('documentURL').collect {|x| x.text }
+  def get_eml_urls(url)
+    doc = Nokogiri::XML(open(@harvest_list))
+    if  doc.root.name == 'harvestList'
+      doc.css('documentURL').collect {|x| x.text }
+    else
+      [url] # assume that it is a single eml document
+    end
+  end
 
+  def check_harvest_list
+    urls = get_eml_urls(@harvest_list)
     begin
       urls.each {|url| check_dataset(url) }
 
