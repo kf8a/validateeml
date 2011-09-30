@@ -42,7 +42,7 @@ class CheckEML
           read_nis_data_reports(data_entities, eml_scope, doc_id, version)
         end
       end
-    end    
+    end
   end
 
 
@@ -78,6 +78,7 @@ class CheckEML
   end
 
   def check_with_eml_validator(url)
+    check_result = false
     doc = Nokogiri::XML(open(url))
     response = RestClient.post('http://knb.ecoinformatics.org/emlparser/parse', 
                                :action=>'textparse', :doctext=> doc.to_s)
@@ -85,10 +86,13 @@ class CheckEML
     results.each do |result|
       if result.text =~ /Passed/
         print '.'
+        check_result=true
       else
         fail_with_message(url, result.text)
+        check_result=false
       end
     end
+    check_result
   end
 
   def print_errors
@@ -111,8 +115,7 @@ class CheckEML
     result = false
     begin
       response = yield 
-      result = true
-      pass_fail(url, response) 
+      result = pass_fail(url, response) 
     rescue RestClient::Exception => e
       @errors.push EMLCheckError.new(url, e.response.body)
       print 'F'
@@ -126,17 +129,21 @@ class CheckEML
   end
 
   def pass_fail(url, response)
+    result = false
     if response.code == 200
       print '.'
+      result = true
     else
       @errors.push EMLCheckError.new(url, response.body)
       print 'F'
     end
+    result
   end
 
 end
 
-EMLCheckError  = Struct.new(:url, :error)
+EMLCheckError  = Struct.new(:url, :message)
+
 if __FILE__ == $0
   url = ARGV[0] || 'http://lter.kbs.msu.edu/datasets?Dataset=all'
 
